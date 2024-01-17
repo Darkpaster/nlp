@@ -3,16 +3,16 @@ package com.darkpaster;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class Main {
-    private static final byte WINDOW_SIZE = 4;
+    public static final byte WINDOW_SIZE = 4;
 
     private static final ArrayList<String> vocabulary = new ArrayList<>();
     private static final ArrayList<List<String>> vectors_data = new ArrayList<>();
 
     //private static final String[] RUSSIAN = read(new File("russian.txt")).toLowerCase().split("\n");
-
 //    private static final String[] FOR_TESTS = read(new File("for_tests.txt"))
 //            .replaceAll("[^ЁёА-я \n\\-]", "").replaceAll("\n", " ")
 //            .replaceAll(" - ", " ").toLowerCase().replaceAll("\\s+", " ").split(" ");
@@ -21,69 +21,69 @@ public class Main {
     private static final String[] STOP_WORDS = read(new File("stop_words.txt"))
             .replaceAll("[^ЁёА-я\n\\-]", "").split("[\n]");
 
-    private static final ArrayList<List<String>> INPUT = new ArrayList<>();
+    private static final ArrayList<ArrayList<String>> INPUT = new ArrayList<>();
 
     public static void main(String[] args) {
-        for(String pr: read(new File("input.txt"))
+//        NeuralNetwork word2vecNN2 = new NeuralNetwork(0.01, NeuralNetwork.AF.SIGMOID,
+//                2500, 1024, 256, 1);
+//        word2vecNN2.learn(10);
+        nlp();
+    }
+
+    private static void nlp() {
+
+//        checkForSlangWords(read(new File("input.txt"))
+//                .replaceAll("[^ЁёА-я \n\\-]", "").replaceAll("\n", " ")
+//                .replaceAll(" - ", " ").toLowerCase().split(" "));
+//        System.exit(1);
+        int i = 0;
+        for (String pr : read(new File("input.txt"))
                 .replaceAll("[^ЁёА-я \n\\-.]", "").replaceAll("\n", " ")
-                .replaceAll(" - ", " ").replaceAll("[.]{2,14}", "").toLowerCase().split("[.]")){
-            INPUT.add(Arrays.asList(pr.split(" ")));
+                .replaceAll(" - ", " ").replaceAll("[.]{2,14}", "").toLowerCase().split("[.]")) {
+            ArrayList<String> n = new ArrayList<>();
+            Collections.addAll(n, pr.split(" "));
+            i += n.size();
+            INPUT.add(n);
         }
-        for(List<String> words: INPUT){
-            System.out.println(words);
+        System.out.println(i);
+        INPUT.removeIf(asd -> asd.size() < 2);
+        for (ArrayList<String> words : INPUT) {
+            while (words.contains("")) words.remove("");
+            removeStopWords(words);
+            //System.out.println(words);
         }
-        for(List<String> pref: INPUT) {
-            for (String s : pref) {
+        stemming(INPUT);
+        for (List<String> proffer : INPUT) {
+            for (String s : proffer) {
                 if (!vocabulary.contains(s)) {
                     vocabulary.add(s);
                 }
             }
         }
-        System.out.println(Arrays.deepToString(bagOfWords(vocabulary, INPUT)));
-        System.exit(1);
-//        vectors_data.addAll(Arrays.asList(read(new File("data_for_vectors.txt"))
-//                .replaceAll("[^ЁёА-я \n\\-]", "").replaceAll("\n", " ")
-//                .replaceAll(" - ", " ").toLowerCase().replaceAll("\\s+", " ").split(" ")));
-
-//        String[] words_input = INPUT
-//
-//
-//
-//        stemming(words_input);
-
-//
-//        ArrayList<String> unique = new ArrayList<>();
-//        stemming(vectors_data);
-//        for (String word : vectors_data) {
-//            if (!unique.contains(word)) unique.add(word);
-//        }
-//        removeStopWords(unique);
-//        removeStopWords(vectors_data);
-//        word2vec(unique);
-//
-//
-//        for (String word : vocabulary) {
-//            System.out.print(word + " ");
-//        }
-//        System.out.println(vocabulary.size());
-
+        INPUT.removeIf(asd -> asd.size() < 2);
+        System.out.println(vocabulary);
+        System.out.println(vocabulary.size());
+        System.out.println(INPUT.size());
+        Word2vec neuralNetwork = new Word2vec(0.01, NeuralNetwork.AF.SOFTMAX,
+                vocabulary.size(), 30, vocabulary.size());
+        neuralNetwork.cbow(5, INPUT, vocabulary);
     }
 
-    private static int[][] bagOfWords(ArrayList<String> unique_words, ArrayList<List<String>> data) {
+    private static int[][] bagOfWords(ArrayList<String> unique_words, ArrayList<ArrayList<String>> data) {
         int[][] vectors = new int[unique_words.size()][unique_words.size()];
         int[] most = {0, 0, 0};
-        for(List<String> proffer: data){
+        for (List<String> proffer : data) {
             for (int i = 0; i < proffer.size(); i++) {
-                for (int j = i-WINDOW_SIZE; j < i+WINDOW_SIZE; j++) {
+                for (int j = i - WINDOW_SIZE; j < i + WINDOW_SIZE; j++) {
                     try {
-                    if (j == 0) continue;
-                    vectors[unique_words.indexOf(proffer.get(i))][unique_words.indexOf(proffer.get(i + j))]++;
-                    if (most[2] < vectors[unique_words.indexOf(proffer.get(i))][unique_words.indexOf(proffer.get(i + j))]) {
-                        most[0] = unique_words.indexOf(proffer.get(i));
-                        most[1] = unique_words.indexOf(proffer.get(i + j));
-                        most[2] = vectors[unique_words.indexOf(proffer.get(i))][unique_words.indexOf(proffer.get(i + j))];
-                    }
-                    }catch (Exception ignored){
+                        if (j == 0) continue;
+                        vectors[unique_words.indexOf(proffer.get(i))][unique_words.indexOf(proffer.get(i + j))]++;
+                        if (most[2] < vectors[unique_words.indexOf(proffer.get(i))][unique_words.indexOf(proffer.get(i + j))]) {
+                            most[0] = unique_words.indexOf(proffer.get(i));
+                            most[1] = unique_words.indexOf(proffer.get(i + j));
+                            most[2] = vectors[unique_words.indexOf(proffer.get(i))][unique_words.indexOf(proffer.get(i + j))];
+                        }
+                    } catch (Exception ignored) {
 
                     }
                 }
@@ -94,16 +94,16 @@ public class Main {
         return vectors;
     }
 
-    private static void stemming(ArrayList<String> words){
+    private static void stemming2(ArrayList<String> words) {
         for (int i = 0; i < words.size(); i++) {
             String word = words.get(i);
             StringBuilder b = new StringBuilder();
             b.append("Before: ").append(word);
             String w2 = word;
-            if(word.endsWith("ая") || word.endsWith("ие") || word.endsWith("ый") || word.endsWith("ые") || word.endsWith("ий")){
+            if (word.endsWith("ая") || word.endsWith("ие") || word.endsWith("ый") || word.endsWith("ые") || word.endsWith("ий")) {
                 word = new StringBuilder().append(word).delete(word.length() - 2, word.length()).append("ое").toString();
             }
-            if(!w2.equals(word)){
+            if (!w2.equals(word)) {
                 b.append(" After: ").append(word);
                 System.out.println(b.toString());
             }
@@ -111,35 +111,39 @@ public class Main {
         }
     }
 
-    private static void stemming(String[] words){
-        for (int i = 0; i < words.length; i++) {
-            String word = words[i];
-            //if(word.endsWith("ые"))word = word.replaceAll("ые", "ый");
-            if(word.endsWith("ая") || word.endsWith("ие") || word.endsWith("ый") || word.endsWith("ые") || word.endsWith("ий")){
-                word = new StringBuilder().append(word).delete(word.length() - 2, word.length()).append("ое").toString();
-            }
-            words[i] = word;
+    private static void stemming(ArrayList<ArrayList<String>> words) {
+        ArrayList<String> total = new ArrayList<>();
+        for (ArrayList<String> proffer : words) {
+            total.addAll(proffer);
         }
-    }
-
-    private static void removeSimilarWords(ArrayList<String> words) {
-        for (int k = 0; k < words.size(); k++) {
-            if (words.get(k).length() < 3) continue;
-            ArrayList<String> similarWords = new ArrayList<>();
-            for (String word : words) {
-                if (word.contains(words.get(k).substring(0, Math.max(3, words.get(k).length() - words.get(k).length() / 5)))) {
-                    similarWords.add(word);
+        for (String word : total) {
+            for (int i = 0; i < words.size(); i++) {
+                ArrayList<String> similarWords = new ArrayList<>();
+                for (int j = 0; j < words.get(i).size(); j++) {
+                    if (word.length() < 3) continue;
+                    //System.out.println("comparing: " + word + " and " + words.get(i).get(j));
+                    if (words.get(i).get(j).contains(word
+                            .substring(0, (int) Math.max(3, word.length() - Math.ceil(word.length() * 0.2))))
+                            ) {
+                        similarWords.add(words.get(i).get(j));
+                        words.get(i).set(j, word);
+//                        boolean z = false;
+//                        if(similarWords.contains()){
+//
+//                        }else{
+//                            words.get(i).set(j, similarWords.get(0));
+//                        }
+                        //System.out.println(similarWords.get(0) +" equals "+ words.get(i).get(j) + ": "+ similarWords.get(0).equals(words.get(i).get(j)));
+                    }
                 }
-
+                if (similarWords.size() > 1) {
+                    System.out.println("Similar words: " + similarWords);
+                }
+                similarWords.clear();
             }
-            System.out.println("Similar words: "+similarWords);
-            while (similarWords.size() > 1) {
-                similarWords.remove((int) (similarWords.size() * Math.random()));
-                words.remove(similarWords.get((int) (similarWords.size() * Math.random())));
-            }
-            similarWords.clear();
         }
     }
+
 
     private static void removeStopWords(ArrayList<String> words) {
         for (String s : STOP_WORDS) {
@@ -150,15 +154,15 @@ public class Main {
         }
     }
 
-    private static void checkForSlangWords(String[] words){
+    private static void checkForSlangWords(String[] words) {
         StringBuilder test = new StringBuilder();
         int i = 0;
-        for(String slang: SLANG){
+        for (String slang : SLANG) {
             //System.out.println(slang);
             //System.out.println("\n\n\n"+slang);
-            for(String word: words){
+            for (String word : words) {
                 //System.out.println(word);
-                if(word.equals(slang)){
+                if (word.equals(slang)) {
                     i++;
                     test.append(slang).append(", ");
                 }
@@ -178,7 +182,7 @@ public class Main {
                 //if(file.getName().equals("input.txt")) System.out.println(c);;
                 content.append(c);
             }
-        }catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return content.toString();
