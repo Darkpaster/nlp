@@ -54,8 +54,8 @@ public class Word2vec extends NeuralNetwork{
     public void cbow(int epoch, ArrayList<ArrayList<String>> words, ArrayList<String> vocabulary) {
         epoch++;
         for (int i = 1; i < epoch; i++) {
+            double rights = 0, errors = 0;
             for (ArrayList<String> proffer : words) {
-                double rights = 0, errors = 0;
                 for (int j = 0; j < proffer.size(); j++) {
                     ArrayList<String> wordsInput = new ArrayList<>();
                     for (int k = -Main.WINDOW_SIZE; k < Main.WINDOW_SIZE; k++) {
@@ -77,15 +77,22 @@ public class Word2vec extends NeuralNetwork{
                     //System.out.println("Target: " + Arrays.toString(out) + "|Real: " + Arrays.toString(layers[2].neurons));
                     for (int k = 0; k < out.length; k++) {
                         errors += (out[k] - layers[layers.length - 1].neurons[k]) * (out[k] - layers[layers.length - 1].neurons[k]);
+//                        if((out[k] - layers[layers.length - 1].neurons[k]) * (out[k] - layers[layers.length - 1].neurons[k]) == 1){
+//                            System.out.println("Mistake on: " + vocabulary.get(k));
+//                        }
+//                        if(layers[layers.length - 1].neurons[k] > 0){
+//                            System.out.println(vocabulary.get(k) + ": "+layers[layers.length - 1].neurons[k]);
+//                        }
                     }
                     backPropagation(out);
+                    //System.out.println("word index: " + vocabulary.indexOf(proffer.get(j)));
                     //System.out.println("Weights: "+Arrays.deepToString(weights[1]));
                     //System.out.println(proffer.get(j));
                     //System.out.println(vocabulary.get(j) + " 1 layer: "+ Arrays.deepToString(weights[0]));
                     //System.out.println(vocabulary.get(j) + " 2 layer: "+ Arrays.deepToString(weights[1]));
-                    System.out.println("errors: " + errors + "  rights: " + rights);
                 }
             }
+            System.out.println("errors: " + errors);
         }
         setEmbeddings(vocabulary);
     }
@@ -100,20 +107,20 @@ public class Word2vec extends NeuralNetwork{
         for (int i = 0; i < embeddings.length; i++) {
             System.out.println(vocabulary.get(i) + ": " + Arrays.toString(embeddings[i]));
         }
-        double[][] matrice = new double[embeddings.length][vocabulary.size()];
-        for (int i = 0; i < embeddings.length; i++) {
-            for (int k = 0; k < embeddings.length; k++) {
-                for (int l = 0; l < embeddings[k].length; l++) {
-                    matrice[i][k] += Math.pow(embeddings[i][l] - embeddings[k][l], 2);
-                }
-            }
-        }
-        for (int i = 0; i < matrice.length; i++) {
-            System.out.print(vocabulary.get(i) + ": ");
-            for (int j = 0; j < matrice[i].length; j++) {
-                System.out.print(vocabulary.get(j) + " " + matrice[i][j] +", ");
-            }
-            System.out.println("\n");
-        }
+//        double[][] matrice = new double[vocabulary.size()][embeddings[0].length];
+//        for (int i = 0; i < embeddings.length; i++) {
+//            for (int k = 0; k < embeddings.length; k++) {
+//                for (int l = 0; l < embeddings[k].length; l++) {
+//                    matrice[i][l] += Math.pow(embeddings[i][l] - embeddings[k][l], 2);
+//                }
+//            }
+//        }
+//        for (int i = 0; i < matrice.length; i++) {
+//            System.out.print(vocabulary.get(i) + ": ");
+//            for (int j = 0; j < matrice[i].length; j++) {
+//                System.out.print(vocabulary.get(j) + " " + matrice[i][j] +", ");
+//            }
+//            System.out.println("\n");
+//        }
     }
 }

@@ -64,8 +64,8 @@ public class Main {
         System.out.println(vocabulary);
         System.out.println(vocabulary.size());
         System.out.println(INPUT.size());
-        Word2vec neuralNetwork = new Word2vec(0.01, NeuralNetwork.AF.SOFTMAX,
-                vocabulary.size(), 30, vocabulary.size());
+        Word2vec neuralNetwork = new Word2vec(0.00001, NeuralNetwork.AF.SOFTMAX,
+                vocabulary.size(), 15, vocabulary.size());
         neuralNetwork.cbow(5, INPUT, vocabulary);
     }
 

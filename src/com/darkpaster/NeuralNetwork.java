@@ -170,8 +170,13 @@ public class NeuralNetwork {
 
     protected void backPropagation(double[] targets) {
         double[] errors = new double[layers[layers.length - 1].size];
+        //int tar = 0;
         for (int i = 0; i < layers[layers.length - 1].size; i++) {
             errors[i] = targets[i] - layers[layers.length - 1].neurons[i];
+//            if(targets[i] != 0){
+//                System.out.println(i +" = "+ targets[i] + ", " + layers[layers.length - 1].neurons[i]);
+//                tar = i;
+//            }
         }
         for (int k = layers.length - 2; k >= 0; k--) {
             Layer l = layers[k];
@@ -179,18 +184,31 @@ public class NeuralNetwork {
             double[] errorsNext = new double[l.size];
             double[] gradients = new double[l1.size];
             for (int i = 0; i < l1.size; i++) {
-                if(k == layers.length - 1){
+                if(AFU != 3){
                     gradients[i] = errors[i] * derivative(layers[k + 1].neurons[i], layers[k + 1].neurons);
                 }else{
-                    gradients[i] = errors[i] * layers[k + 1].neurons[i];
+                    if(k == layers.length - 2){
+
+                        gradients[i] = errors[i] * derivative(layers[k + 1].neurons[i], layers[k + 1].neurons);
+//                    if(i == tar){
+//                        System.out.println("neuron: "+i+" ("+layers[k + 1].neurons[i]+"), gradient (error * derivative * LR): " + gradients[i]*LR);
+//                    }
+                    }else{
+                        gradients[i] = errors[i] * layers[k + 1].neurons[i];
+                    }
                 }
                 gradients[i] *= LR;
             }
             double[][] deltas = new double[l1.size][l.size];
+            int check = 0;
             for (int i = 0; i < l1.size; i++) {
                 for (int j = 0; j < l.size; j++) {
                     deltas[i][j] = gradients[i] * l.neurons[j];
+//                    if(k == layers.length - 2 && i == tar){
+//                        System.out.println("delta " + j+" (gradient * each neuron of the next layer): "+deltas[i][check]);
+//                    }
                 }
+
             }
             for (int i = 0; i < l.size; i++) {
                 errorsNext[i] = 0;
@@ -200,14 +218,20 @@ public class NeuralNetwork {
             }
             errors = new double[l.size];
             System.arraycopy(errorsNext, 0, errors, 0, l.size);
-            double[][] weightsNew = new double[l.weights.length][l.weights[0].length];
+            double[][] weightsNew = new double[l.weights.length][l.weights[0].length]; //why new?
             for (int i = 0; i < l1.size; i++) {
                 for (int j = 0; j < l.size; j++) {
                     weightsNew[j][i] = l.weights[j][i] + deltas[i][j];
+//                    if(k == layers.length - 2){
+//                        System.out.println("weight "+j+" (weight / each deltas of the next layer) = "+weightsNew[j][i]);
+//                    }
                 }
             }
             l.weights = weightsNew;
             for (int i = 0; i < l1.size; i++) {
+//                if(i == tar && k == layers.length - 2){
+//                    System.out.println(l1.biases[i]+" biase (biase + gradient) = " + l1.biases[i] + gradients[i]);
+//                }
                 l1.biases[i] += gradients[i];
             }
         }
@@ -231,7 +255,7 @@ public class NeuralNetwork {
                         //System.out.println("step 3: "+ l1.neurons[j]);
                     }
                 } else {
-                    l1.neurons[j] = AF(l1.neurons[j]);
+                    l1.neurons[j] = AF(l1.neurons[j], l1.neurons);
                 }
             }
         }
@@ -248,17 +272,22 @@ public class NeuralNetwork {
                 break;
             case SOFTMAX:
                 AFU = 3;
+                break;
+            case ReLU:
+                AFU = 4;
         }
     }
 
-    protected double AF(double neuron) {
+    protected double AF(double neuron, double[] neurons) {
         switch (AFU) {
             case 1:
                 return binary(neuron);
             case 2:
                 return sigmoid(neuron);
             case 3:
-                //return softmax(neuron);
+                return softmax(neuron, neurons);
+            case 4:
+                return reLU(neuron);
         }
         return neuron;
     }
@@ -296,6 +325,8 @@ public class NeuralNetwork {
                 return x * (1 - x);//sigmoid
             case 3:
                 return softmax(x, n) * (1 - softmax(x, n)); //softmax
+            case 4:
+                return x <= 0 ? 0 : 1;
         }
         return x;
     }
