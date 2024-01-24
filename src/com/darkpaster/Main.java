@@ -26,12 +26,17 @@ public class Main {
     public static void main(String[] args) {
 //        NeuralNetwork word2vecNN2 = new NeuralNetwork(0.01, NeuralNetwork.AF.SIGMOID,
 //                2500, 1024, 256, 1);
+//        double[] test = {1, 1, 1};
+//        double[] oldTest = {1, 1, 1};
+//        for (int i = 0; i < test.length; i++) {
+//            test[i] = word2vecNN2.softmax(oldTest[i], oldTest);
+//        }
+//        System.out.println(Arrays.toString(test));
 //        word2vecNN2.learn(10);
-        nlp();
+       nlp();
     }
 
     private static void nlp() {
-
 //        checkForSlangWords(read(new File("input.txt"))
 //                .replaceAll("[^ЁёА-я \n\\-]", "").replaceAll("\n", " ")
 //                .replaceAll(" - ", " ").toLowerCase().split(" "));
@@ -46,13 +51,12 @@ public class Main {
             INPUT.add(n);
         }
         System.out.println(i);
-        INPUT.removeIf(asd -> asd.size() < 2);
+        INPUT.removeIf(asd -> asd.size() < 2);;
         for (ArrayList<String> words : INPUT) {
             while (words.contains("")) words.remove("");
             removeStopWords(words);
-            //System.out.println(words);
         }
-        stemming(INPUT);
+        //stemming(INPUT);
         for (List<String> proffer : INPUT) {
             for (String s : proffer) {
                 if (!vocabulary.contains(s)) {
@@ -62,11 +66,17 @@ public class Main {
         }
         INPUT.removeIf(asd -> asd.size() < 2);
         System.out.println(vocabulary);
+        System.out.println(INPUT);
         System.out.println(vocabulary.size());
         System.out.println(INPUT.size());
-        Word2vec neuralNetwork = new Word2vec(0.00001, NeuralNetwork.AF.SOFTMAX,
-                vocabulary.size(), 15, vocabulary.size());
-        neuralNetwork.cbow(5, INPUT, vocabulary);
+        Word2vec neuralNetwork = new Word2vec(0.01, NeuralNetwork.AF.SOFTMAX, NeuralNetwork.WI.XAVIER,
+                vocabulary.size(), 10, vocabulary.size());
+        int epochs = 1000;
+        long start = System.nanoTime();
+        neuralNetwork.cbow(epochs, INPUT, vocabulary);
+        System.out.println((System.nanoTime() - start) / 1000000000d / (double) epochs);
+        //16.469277044
+        //16.275196715
     }
 
     private static int[][] bagOfWords(ArrayList<String> unique_words, ArrayList<ArrayList<String>> data) {
@@ -113,20 +123,36 @@ public class Main {
 
     private static void stemming(ArrayList<ArrayList<String>> words) {
         ArrayList<String> total = new ArrayList<>();
-        for (ArrayList<String> proffer : words) {
+        for (ArrayList<String> proffer: words) {
             total.addAll(proffer);
+
+        }
+        for (int i = 0; i < total.size(); i++) {
+            for (int j = 0; j < total.size(); j++) {
+                if(total.get(i).equals(total.get(j)))continue;
+                if (total.get(i).contains(total.get(j)
+                        .substring(0, (int) Math.max(3, total.get(j).length() - Math.ceil(total.get(j).length() * 0.2))))) {
+                    total.remove(total.get(j));
+                }
+            }
         }
         for (String word : total) {
-            for (int i = 0; i < words.size(); i++) {
+            for (ArrayList<String> strings : words) {
                 ArrayList<String> similarWords = new ArrayList<>();
-                for (int j = 0; j < words.get(i).size(); j++) {
-                    if (word.length() < 3) continue;
-                    //System.out.println("comparing: " + word + " and " + words.get(i).get(j));
-                    if (words.get(i).get(j).contains(word
-                            .substring(0, (int) Math.max(3, word.length() - Math.ceil(word.length() * 0.2))))
-                            ) {
-                        similarWords.add(words.get(i).get(j));
-                        words.get(i).set(j, word);
+                for (int j = 0; j < strings.size(); j++) {
+                    if (word.length() < 3 || word.equals(strings.get(j))) continue;
+                    if (strings.get(j).contains(word
+                            .substring(0, (int) Math.max(3, word.length() - Math.ceil(word.length() * 0.2))))) {
+                        similarWords.add(word);
+                        similarWords.add(strings.get(j));
+                        if(word.startsWith("медв")){
+                            System.out.println(strings.get(j));
+                            System.out.println(word);
+                        }
+                        strings.set(j, word);
+                        if(word.startsWith("медв")){
+                            System.out.println("after: "+strings.get(j));
+                        }
 //                        boolean z = false;
 //                        if(similarWords.contains()){
 //
