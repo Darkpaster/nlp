@@ -1,4 +1,4 @@
-package com.darkpaster;
+package com.darkpaster.neuralNetworks;
 public class Layer {
 
     public int size;

@@ -1,48 +1,53 @@
-package com.darkpaster;
+package com.darkpaster.neuralNetworks.architecture;
 
+import com.darkpaster.IO;
+import com.darkpaster.Main;
+import com.darkpaster.NLP.Preprocessing;
+import com.darkpaster.neuralNetworks.NLPNeuralNetwork;
+import com.darkpaster.neuralNetworks.NeuralNetwork;
+
+import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 
-public class Word2vec extends NeuralNetwork{
-    private final double[][] embeddings;
+public class Word2vec extends NLPNeuralNetwork {
 
-    Word2vec(double learningRate, AF activationFunction, WI weightsInitCase, int... neurNum) {
-        super(learningRate, activationFunction, weightsInitCase, neurNum);
-        embeddings = new double[layers[layers.length-1].neurons.length][layers[1].weights.length];
+    public Word2vec(double learningRate, byte window_size, AF activationFunction, WI weightsInitCase, int... neurNum) {
+        super(learningRate, window_size, activationFunction, weightsInitCase, neurNum);
     }
-
 
     public void skipGram(int epoch, ArrayList<ArrayList<String>> words, ArrayList<String> vocabulary) {
         epoch++;
         for (int i = 1; i < epoch; i++) {
-            double rights = 0, errors = 0;
-            for (ArrayList<String> proffer : words) {
-                for (int j = 0; j < proffer.size(); j++) {
+            double errors = 0;
+            double errorsStandard = 0;
+            double errorsSoftmax = 0;
+            int iterator = 0;
+            for (ArrayList<String> sentence : words) {
+                for (int j = 0; j < sentence.size(); j++) {
                     double[] in = new double[layers[0].neurons.length];
-                    Arrays.fill(in, 0);
-                    in[vocabulary.indexOf(proffer.get(j))] = 1;
+                    in[vocabulary.indexOf(sentence.get(j))] = 1;
                     feedForward(in);
                     ArrayList<String> wordTargets = new ArrayList<>();
-                    for (int k = -Main.WINDOW_SIZE; k < Main.WINDOW_SIZE; k++) {
+                    for (int k = -WINDOW_SIZE; k < WINDOW_SIZE; k++) {
                         if (k == 0) continue;
                         try {
-                            wordTargets.add(proffer.get(j + k));
+                            wordTargets.add(sentence.get(j + k));
                         } catch (Exception ignored) {
                         }
                     }
-                    double[] numTargets = new double[layers[layers.length - 1].neurons.length];
-                    Arrays.fill(numTargets, 0);
+                    double[] out = new double[layers[layers.length - 1].neurons.length];
                     for (String word : wordTargets) {
-                        numTargets[vocabulary.indexOf(word)] = 1;
+                        out[vocabulary.indexOf(word)] = 1;
                     }
-                    for (int k = 0; k < numTargets.length; k++) {
-                        errors += (numTargets[k] - layers[layers.length - 1].neurons[k]) * (numTargets[k] - layers[layers.length - 1].neurons[k]);
-                    }
-                    //System.out.println("Target: " + Arrays.toString(numTargets) + "|Real: " + Arrays.toString(layers[2].neurons));
-                    backPropagation(numTargets);
+                    errors += getAbsoluteError(layers[layers.length-1].neurons, out);
+                    errorsStandard += getStandardDeviation(layers[layers.length-1].neurons);
+                    errorsSoftmax += categoricalCrossEntropyLoss(layers[layers.length-1].neurons, out);
+                    iterator++;
+                    backPropagation(out);
                 }
-                System.out.println("errors: " + errors + ", deviation: " + getStandardDeviation(layers[layers.length-1].neurons));
             }
+            System.out.println("standard deviation: "+errorsStandard / iterator
+                    +", softmax error: " + errorsSoftmax / iterator + ", absolute error: " + errors / iterator);
         }
         setEmbeddings(vocabulary);
     }
@@ -54,26 +59,23 @@ public class Word2vec extends NeuralNetwork{
             double errorsStandard = 0;
             double errorsSoftmax = 0;
             int iterator = 0;
-            for (ArrayList<String> proffer : words) {
-                for (int j = 0; j < proffer.size(); j++) {
+            for (ArrayList<String> sentence : words) {
+                for (int j = 0; j < sentence.size(); j++) {
                     ArrayList<String> wordsInput = new ArrayList<>();
-                    for (int k = -Main.WINDOW_SIZE; k < Main.WINDOW_SIZE; k++) {
+                    for (int k = -WINDOW_SIZE; k < WINDOW_SIZE; k++) {
                         if (k == 0) continue;
                         try {
-                            wordsInput.add(proffer.get(j + k));
+                            wordsInput.add(sentence.get(j + k));
                         } catch (Exception ignored) {
                         }
                     }
                     double[] in = new double[layers[0].neurons.length];
-                    Arrays.fill(in, 0);
-                    for (String word : wordsInput) {
+                    for (String word: wordsInput) {
                         in[vocabulary.indexOf(word)] = 1;
                     }
                     feedForward(in);
                     double[] out = new double[layers[layers.length-1].neurons.length];
-                    Arrays.fill(out, 0);
-                    out[vocabulary.indexOf(proffer.get(j))] = 1;
-
+                    out[vocabulary.indexOf(sentence.get(j))] = 1;
                     errors += getAbsoluteError(layers[layers.length-1].neurons, out);
                     errorsStandard += getStandardDeviation(layers[layers.length-1].neurons);
                     errorsSoftmax += categoricalCrossEntropyLoss(layers[layers.length-1].neurons, out);
@@ -108,7 +110,9 @@ public class Word2vec extends NeuralNetwork{
                     +", softmax error: " + errorsSoftmax / iterator + ", absolute error: " + errors / iterator);
             //System.out.println("sum: " + sum);
         }
-        setEmbeddings(vocabulary);
+        //setEmbeddings(vocabulary);
+        //System.out.println("\n\n\n\n");
+        setEmbeddings2(vocabulary);
     }
 
     private void setEmbeddings(ArrayList<String> vocabulary){
@@ -140,5 +144,43 @@ public class Word2vec extends NeuralNetwork{
             }
             System.out.print("\n");
         }
+    }
+
+    private void setEmbeddings2(ArrayList<String> vocabulary){
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < layers[0].weights.length; i++) {
+            for (int j = 0; j < layers[0].weights[i].length; j++) {
+                embeddings[i][j] = layers[0].weights[i][j];
+                stringBuilder.append(embeddings[i][j]).append(" ");
+                if(embeddings[i][j] > 1){
+                    System.out.println("govno");
+                }
+            }
+            stringBuilder.append("\n");
+        }
+        IO.write(new File("embeddings.txt"), String.valueOf(stringBuilder));
+//        for (int i = 0; i < embeddings.length; i++) {
+//            System.out.print(vocabulary.get(i) + ": ");
+//            for (int j = 0; j < embeddings[i].length; j++) {
+//                System.out.format("%f, ", embeddings[i][j]);
+//            }
+//            System.out.print("\n");
+//        }
+//
+//        double[][] matrice = new double[vocabulary.size()][vocabulary.size()];
+//        for (int i = 0; i < embeddings.length; i++) {
+//            for (int k = 0; k < embeddings.length; k++) {
+//                for (int l = 0; l < embeddings[k].length; l++) {
+//                    matrice[i][k] += Math.abs(embeddings[i][l] - embeddings[k][l]);
+//                }
+//            }
+//        }
+//        for (int i = 0; i < matrice.length; i++) {
+//            System.out.print(vocabulary.get(i) + ": ");
+//            for (int j = 0; j < matrice[i].length; j++) {
+//                System.out.print(vocabulary.get(j) + " " + matrice[i][j] +", ");
+//            }
+//            System.out.print("\n");
+//        }
     }
 }
