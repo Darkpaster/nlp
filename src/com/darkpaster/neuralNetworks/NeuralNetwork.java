@@ -33,7 +33,7 @@ public class NeuralNetwork {
             layers[i] = new Layer(neurNum[i], nextSize);
             for (int j = 0; j < neurNum[i]; j++) {
                 if (weightsInitCase == WI.XAVIER) {
-                    layers[i].biases[j] = Math.random();
+                    layers[i].biases[j] = 0;
                     for (int k = 0; k < nextSize; k++) {
                         layers[i].weights[j][k] = xavier((i > 0 ? neurNum[i - 1] : 1), nextSize);
                     }

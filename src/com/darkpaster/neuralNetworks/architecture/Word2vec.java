@@ -8,6 +8,7 @@ import com.darkpaster.neuralNetworks.NeuralNetwork;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 
 public class Word2vec extends NLPNeuralNetwork {
 
@@ -15,14 +16,14 @@ public class Word2vec extends NLPNeuralNetwork {
         super(learningRate, window_size, activationFunction, weightsInitCase, neurNum);
     }
 
-    public void skipGram(int epoch, ArrayList<ArrayList<String>> words, ArrayList<String> vocabulary) {
+    public void skipGram(int epoch, ArrayList<ArrayList<String>> tokens, ArrayList<String> vocabulary) {
         epoch++;
         for (int i = 1; i < epoch; i++) {
             double errors = 0;
             double errorsStandard = 0;
             double errorsSoftmax = 0;
             int iterator = 0;
-            for (ArrayList<String> sentence : words) {
+            for (ArrayList<String> sentence: tokens) {
                 for (int j = 0; j < sentence.size(); j++) {
                     double[] in = new double[layers[0].neurons.length];
                     in[vocabulary.indexOf(sentence.get(j))] = 1;
@@ -52,14 +53,14 @@ public class Word2vec extends NLPNeuralNetwork {
         setEmbeddings(vocabulary);
     }
 
-    public void cbow(int epoch, ArrayList<ArrayList<String>> words, ArrayList<String> vocabulary) {
+    public void cbow(int epoch, List<List<String>> tokens, List<String> vocabulary) {
         epoch++;
         for (int i = 1; i < epoch; i++) {
             double errors = 0;
             double errorsStandard = 0;
             double errorsSoftmax = 0;
             int iterator = 0;
-            for (ArrayList<String> sentence : words) {
+            for (List<String> sentence: tokens) {
                 for (int j = 0; j < sentence.size(); j++) {
                     ArrayList<String> wordsInput = new ArrayList<>();
                     for (int k = -WINDOW_SIZE; k < WINDOW_SIZE; k++) {
@@ -112,10 +113,10 @@ public class Word2vec extends NLPNeuralNetwork {
         }
         //setEmbeddings(vocabulary);
         //System.out.println("\n\n\n\n");
-        setEmbeddings2(vocabulary);
+        setEmbeddings2();
     }
 
-    private void setEmbeddings(ArrayList<String> vocabulary){
+    private void setEmbeddings(List<String> vocabulary){
         for (int i = 0; i < layers[1].weights[0].length; i++) {
             for (int j = 0; j < layers[1].weights.length; j++) {
                 embeddings[i][j] = layers[1].weights[j][i];
@@ -146,19 +147,19 @@ public class Word2vec extends NLPNeuralNetwork {
         }
     }
 
-    private void setEmbeddings2(ArrayList<String> vocabulary){
+    private void setEmbeddings2(){
         StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i < layers[0].weights.length; i++) {
             for (int j = 0; j < layers[0].weights[i].length; j++) {
                 embeddings[i][j] = layers[0].weights[i][j];
                 stringBuilder.append(embeddings[i][j]).append(" ");
                 if(embeddings[i][j] > 1){
-                    System.out.println("govno");
+                    //System.out.println("govno");
                 }
             }
             stringBuilder.append("\n");
         }
-        IO.write(new File("embeddings.txt"), String.valueOf(stringBuilder));
+        IO.write(new File("dataset/embeddings.txt"), String.valueOf(stringBuilder));
 //        for (int i = 0; i < embeddings.length; i++) {
 //            System.out.print(vocabulary.get(i) + ": ");
 //            for (int j = 0; j < embeddings[i].length; j++) {

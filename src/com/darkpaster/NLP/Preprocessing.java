@@ -4,6 +4,7 @@ import com.darkpaster.IO;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -11,6 +12,7 @@ public class Preprocessing {
     public enum TOKEN_TYPE {
         EVERY_CHAR, EVERY_TWO_CHARS, EVERY_WORD, EVERY_MARK
     }
+
     private final String STOP_WORDS_PATH = "dataset/stop_words.txt";
     private final String PROFANITY_WORDS_PATH = "dataset/profanity.txt";
     private final String SLANG_WORDS_PATH = "dataset/russian_slang.txt";
@@ -20,130 +22,141 @@ public class Preprocessing {
     private final List<List<String>> TOKENS = new ArrayList<>();
     private final List<String> VOCABULARY = new ArrayList<>();
     private final TOKEN_TYPE rule;
-    private final boolean sentence;
 
-    public Preprocessing(File dataset, TOKEN_TYPE rule, boolean sentence){
-        source = IO.read(dataset);
+    public Preprocessing(File dataset, TOKEN_TYPE rule, boolean removeChars) {
+        source = IO.read(dataset).toLowerCase();
         this.rule = rule;
         STOP_WORDS = IO.read(new File(STOP_WORDS_PATH))
                 .replaceAll("[^ЁёА-я\n\\-]", "").split("[\n]");
         SLANG = IO.read(new File(SLANG_WORDS_PATH))
                 .toLowerCase().replaceAll("[^ЁёА-я\n]", "").split("[\n]");
-        this.sentence = sentence;
-    }
-    public Preprocessing(String dataset, TOKEN_TYPE rule, boolean sentence){
-        source = dataset;
-        this.rule = rule;
-        STOP_WORDS = IO.read(new File(STOP_WORDS_PATH))
-                .replaceAll("[^ЁёА-я\n\\-]", "").split("[\n]");
-        SLANG = IO.read(new File(SLANG_WORDS_PATH))
-                .toLowerCase().replaceAll("[^ЁёА-я\n]", "").split("[\n]");
-        this.sentence = sentence;
-    }
-
-    public Preprocessing tokenize(){ //
-        //int i = 0;
-        if(TOKEN_TYPE == TOKEN_TYPE.){}
-        for (String sentence: IO.read(new File("input.txt"))
-                .replaceAll("[^ЁёА-я \n\\-.]", "").replaceAll("\n", " ")
-                .replaceAll(" - ", " ").replaceAll("[.]{2,14}", "").toLowerCase().split("[.]")) {
-            ArrayList<String> n = new ArrayList<>();
-            Collections.addAll(n, sentence.split(" "));
-            //i += n.size();
-            TOKENS.add(n);
+        if (removeChars && rule != TOKEN_TYPE.EVERY_MARK) {
+            removeChars();
         }
+    }
+
+    public Preprocessing(String dataset, TOKEN_TYPE rule, boolean removeChars) {
+        source = dataset.toLowerCase();
+        this.rule = rule;
+        STOP_WORDS = IO.read(new File(STOP_WORDS_PATH))
+                .replaceAll("[^ЁёА-я\n\\-]", "").split("[\n]");
+        SLANG = IO.read(new File(SLANG_WORDS_PATH))
+                .toLowerCase().replaceAll("[^ЁёА-я\n]", "").split("[\n]");
+        if (removeChars && rule != TOKEN_TYPE.EVERY_MARK) {
+            removeChars();
+        }
+    }
+
+    private void removeChars() {
+        source = source
+                .replaceAll("[^Ёёа-я \n\\-.?!]", "").replaceAll("\n", " ")
+                .replaceAll(" - ", " ").replaceAll("- ", "").replaceAll("[.]{2,14}", ".");
+    }
+
+    public Preprocessing tokenize() { //
+        //int i = 0;
+        for (String sentence : source.split("[.?!]")) {
+            List<String> n = new ArrayList<>();
+            if (rule == TOKEN_TYPE.EVERY_WORD) {
+                Collections.addAll(n, sentence.split(" "));
+            } else if (rule == TOKEN_TYPE.EVERY_CHAR) {
+                for (char c : sentence.trim().toCharArray()) {
+                    n.add(String.valueOf(c));
+                }
+            } else if (rule == TOKEN_TYPE.EVERY_MARK) {
+                n.addAll(Arrays.asList(sentence.trim()
+                        .split("(?=[:.;,)(!?0-9])|\\s")));
+            } else {
+
+            }
+            //i += n.size();
+            if (n.size() > 1) {
+                while (n.contains("") || n.contains("null")) {
+                    n.remove("");
+                    n.remove("null");
+                }
+                TOKENS.add(n);
+            }
+        }
+
         //System.out.println(i);
         TOKENS.removeIf(asd -> asd.size() < 2);
 
         return this;
     }
 
-    public Preprocessing removeStopWords(ArrayList<String> words) {
-        for (String word: STOP_WORDS) {
-            source = source.replaceAll(word, "");
+    public Preprocessing removeStopWords() {
+        for (String word : STOP_WORDS) {
+            source = source.replaceAll(" " + word + " ", " ").replaceAll(" " + word + "\\.", ".");
         }
         return this;
     }
 
-    private static void stemming2(ArrayList<String> words) {
-        for (int i = 0; i < words.size(); i++) {
-            String word = words.get(i);
-            StringBuilder b = new StringBuilder();
-            b.append("Before: ").append(word);
-            String w2 = word;
-            if (word.endsWith("ая") || word.endsWith("ие") || word.endsWith("ый") || word.endsWith("ые") || word.endsWith("ий")) {
-                word = new StringBuilder().append(word).delete(word.length() - 2, word.length()).append("ое").toString();
-            }
-            if (!w2.equals(word)) {
-                b.append(" After: ").append(word);
-                System.out.println(b.toString());
-            }
-            words.set(i, word);
-        }
-    }
-
-    private static void stemming(ArrayList<ArrayList<String>> words) {
-        ArrayList<String> total = new ArrayList<>();
-        for (ArrayList<String> sentence: words) {
-            total.addAll(sentence);
-
-        }
-        for (String word: total) {
-            for (ArrayList<String> strings : words) {
-                ArrayList<String> similarWords = new ArrayList<>();
-                for (int j = 0; j < strings.size(); j++) {
-                    if (word.length() < 3 || word.equals(strings.get(j))) continue;
-                    if (strings.get(j).contains(word
-                            .substring(0, (int) Math.max(3, word.length() - Math.ceil(word.length() * 0.2))))) {
-                        similarWords.add(word);
-                        similarWords.add(strings.get(j));
-                        if(word.startsWith("медв")){
-                            System.out.println(strings.get(j));
-                            System.out.println(word);
-                        }
-                        strings.set(j, word);
-                        if(word.startsWith("медв")){
-                            System.out.println("after: "+strings.get(j));
-                        }
-//                        boolean z = false;
-//                        if(similarWords.contains()){
-//
-//                        }else{
-//                            words.get(i).set(j, similarWords.get(0));
-//                        }
-                        //System.out.println(similarWords.get(0) +" equals "+ words.get(i).get(j) + ": "+ similarWords.get(0).equals(words.get(i).get(j)));
+    public Preprocessing stemming() {
+        String[] st = source.split(" ");
+        String[] result = new String[st.length];
+        for (String word : st) {
+            for (int i = 0; i < st.length; i++) {
+                String replacedWord = word.replaceAll("[^ёЁА-я]", "");
+                if (st[i].replaceAll("[^ёЁА-я]", "").length() < 3 || replacedWord.length() < 3) continue;
+                if (st[i].contains(replacedWord
+                        .substring(0, (int) Math.max(3, replacedWord.length() - Math.ceil(replacedWord.length() * 0.2))))) {
+                    result[i] = word;
+                } else {
+                    if (result[i] == null) {
+                        result[i] = st[i];
                     }
                 }
-                if (similarWords.size() > 1) {
-                    System.out.println("Similar words: " + similarWords);
-                }
-                similarWords.clear();
             }
         }
+        StringBuilder builder = new StringBuilder();
+        for (String value : result) {
+            builder.append(value).append(" ");
+        }
+        source = builder.toString().trim();
+        return this;
     }
 
     public Preprocessing removeSlangWords() {
-        for (String slang: SLANG) {
-            source = source.replaceAll(slang, "");
+        for (String slang : SLANG) {
+            source = source.replaceAll(" " + slang + " ", " ").replaceAll(" " + slang + "\\.", ".");
         }
         return this;
     }
 
-    public Preprocessing complete(){
-        if(TOKENS.size() == 0)throw new NullPointerException();
-        for(List<String> sentence: TOKENS){
-            for(String token: sentence){
-                if(!VOCABULARY.contains(token)){
+    public List<String> removeSentenceSplitting() {
+        List<String> tokens = new ArrayList<>();
+        for (List<String> sentence : TOKENS) {
+            tokens.addAll(sentence);
+        }
+        return tokens;
+    }
+
+    public Preprocessing complete() {
+        if (TOKENS.size() == 0) throw new NullPointerException();
+        for (List<String> sentence : TOKENS) {
+            for (String token : sentence) {
+                if (!VOCABULARY.contains(token)) {
                     VOCABULARY.add(token);
                 }
             }
         }
         return this;
     }
-    public List<String> getTOKENS(){
-        return sentence ? TOKENS : ; //двухмерный или одномерный
+
+    public List<List<String>> getTOKENS() {
+        return TOKENS;
     }
-    public ArrayList<String> getVOCABULARY(){return VOCABULARY;}
+
+    public List<String> getVOCABULARY() {
+        return VOCABULARY;
+    }
+
+    public List<String> usingSplitMethod(String text, int n) {
+        String[] results = text.split("(?<=\\G.{" + n + "})");
+
+        return Arrays.asList(results);
+    }
 
 //    private int[][] bagOfWords(ArrayList<String> unique_words, ArrayList<ArrayList<String>> data) {
 //        int[][] vectors = new int[unique_words.size()][unique_words.size()];
